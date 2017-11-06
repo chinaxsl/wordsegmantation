@@ -1,8 +1,8 @@
 import copy
-import time
 import re
 
 class ModelTrain:
+    #初始化中文词典和左邻词频次
     def __init__(self):
         file = open('train_1.txt','r',encoding='utf-8')
         contents = file.readlines()
@@ -47,28 +47,22 @@ class ModelTrain:
                     else:
                         word_LAW[result[index]] = {result[index-1]:1}
         return word_LAW
-
+    #递归切分语句 根据词典列出所有可能的切分组合
     def cut(self, text, start, maxLen,cut_group=[]):
         length = len(text)
         if start==length:
             self.cut_groups.append(copy.deepcopy(cut_group))
         else:
-            flag = False
             for interval in reversed(range(1,maxLen+1)):
                 if start+interval<=length and text[start:start+interval] in self.words:
-                    flag = True
                     cut_group.append(text[start:start + interval])
                     self.cut(text, start + interval, maxLen,cut_group)
                     cut_group.pop()
 
-                # print(self.count)
-                # print(cut_result)
-
-
-
+    #从所有的切分组合中找到概率最大的切分
     def getMaxProGroup(self,cut_groups):
         MaxProbility = 0
-        Max = None
+        Max = []
         for cut_group in cut_groups:
             Probility = self.getProbility(cut_group)
             if Probility > MaxProbility:
@@ -76,17 +70,21 @@ class ModelTrain:
                 MaxProbility = Probility
         return Max
 
+    #根据Bigram语言模型计算中文词概率  采用加1平滑
+    #1、句首词 P = 词典出现频次+1/ 语料文件的词总数 + 词典的词总数
+    #2、非句首词 P = 出现该左邻词频次+1 / 左邻词总数+不同左邻词数
+    #3、OOV词 P = 1/ 语料文件的词总数 + 词典的词总数
     def getProbility(self,cut_group):
         probility = 1.0
         length = len(cut_group)
         for index in range(length):
             if index and cut_group[index] in self.words:
-                    probility *= self.words[cut_group[index]]/self.words_length
+                    probility *= self.words[cut_group[index]]+1/self.words_length
             elif cut_group[index] in self.words:
                 law_count = 0
                 for key in self.words_LAW[cut_group[index]].keys():
                     law_count += self.words_LAW[cut_group[index]][key]+1
-                if cut_group[index] in self.words_LAW[cut_group[index]]:
+                if cut_group[index-1] in self.words_LAW[cut_group[index]]:
                     probility *= self.words_LAW[cut_group[index]][cut_group[index-1]]+1/law_count
                 else:
                     probility *= 1/law_count
@@ -94,43 +92,39 @@ class ModelTrain:
                 probility *= 1/self.words_length
         return probility
 
-    def writeResult(self,outputFile,contents_after):
-        with open(outputFile,'w',encoding='utf-8'):
-            outputFile.writelines(contents_after)
 
+    #将分词后的结果输出到文件
+    def writeResult(self,outputFile,contents_after):
+        with open(outputFile,'w',encoding='utf-8') as outfile:
+            outfile.writelines(contents_after)
+
+    #从文件内容中读取待切分的内容,内容分为若干行
+    #每行内容又按标点切分成多段，最后按段切分以减少切分句子的长度，提高切分速度
     def getCutResult(self,contents_before):
         self.cut_groups = []
         contents_after =[]
         length = len(contents_before)
-        # contents_before = contents_before[0:10]
-        result = re.split('：|-|/|【|？|】|\?|。|，|\.|、|《|》| |（|）|”|“|；|\n',text)
-        str_c = ''
-        for i in result:
-            self.cut_groups.clear()
-            self.cut(i,0,6)
-            i = self.getMaxProGroup(self.cut_groups)
-            contents_after += i
-        return contents_after
-
-
-    # def test(self):
-    #     text = '１２月３１日，中共中央总书记、国家主席江泽民发表１９９８年新年讲话《迈向充满希望的新世纪》。（新华社记者兰红光摄）'
-    #     cut_groups=[]
-    #     begin = time.time()
-    #     self.cut_groups = []
-    #     self.cut(text,0,6)
-    #     print("划分完成")
-    #     result = self.getMaxProGroup(self.cut_groups)
-    #     end = time.time()
-    #     print(result)
-    #     print(end-begin)
-    #     return result
+        contents_before = contents_before[0:10]
+        count = 0
+        for line in contents_before:
+            count+=1
+            print(count)
+            result = re.split('(：|-|/|【|？|】|\?|。|，|\.|、|《|》| |（|）|”|“|；|\n)', line)
+            sentence = []
+            for word in result:
+                if word:
+                    self.cut_groups.clear()
+                    self.cut(word,0,6)
+                    temp = self.getMaxProGroup(self.cut_groups)
+                    sentence += temp
+            content = " ".join(sentence)+"\n"
+            contents_after.append(content)
+        return "".join(contents_after)
 
 model = ModelTrain()
-text = "１２月３１日，中共中央总书记、国家主席江泽民发表１９９８年新年讲话《迈向充满希望的新世纪》。（新华社记者兰红光摄）"
-# file = open('train_final.txt','r',encoding='utf-8')
-# text = file.readlines()
-contents_after = model.getCutResult(text)
-print(contents_after)
-# model.writeResult('2017111457.txt',contents_after)
-# print(model.test())
+# text = "１２月３１日，中共中央总书记、国家主席江泽民发表１９９８年新年讲话《迈向充满希望的新世纪》。（新华社记者兰红光摄）"
+file = open('train_final.txt','r',encoding='utf-8')
+line = file.readlines()
+contents_after = model.getCutResult(line)
+# print(contents_after)
+model.writeResult('2017111457.txt',contents_after)
