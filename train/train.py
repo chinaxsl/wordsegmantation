@@ -57,23 +57,34 @@ class ModelTrain:
                     if result[index] not in word_LAW.keys():
                         word_LAW[result[index]] = {}
         return word_LAW
+<<<<<<< HEAD
 
+=======
+>>>>>>> 38a2747b67c0e6f2faa97eebec1cc46d7e937dc8
     #递归切分语句 根据词典列出所有可能的切分组合
     def cut(self, text, start, maxLen,cut_group=[]):
         length = len(text)
         if start==length:
             self.cut_groups.append(copy.deepcopy(cut_group))
         else:
+<<<<<<< HEAD
             for index in reversed(range(2,maxLen+1)):
                 if start+index<=length and text[start:start+index] in self.words:
                     cut_group.append(text[start:start + index])
                     self.cut(text, start + index, maxLen,cut_group)
+=======
+            for interval in reversed(range(1,maxLen+1)):
+                if start+interval<=length and text[start:start+interval] in self.words:
+                    cut_group.append(text[start:start + interval])
+                    self.cut(text, start + interval, maxLen,cut_group)
+>>>>>>> 38a2747b67c0e6f2faa97eebec1cc46d7e937dc8
                     cut_group.pop()
             if text[start] in self.words:
                 cut_group.append(text[start:start + 1])
                 self.cut(text, start + 1, maxLen, cut_group)
                 cut_group.pop()
 
+<<<<<<< HEAD
     #把句子切分成若干个长度小于maxLen的词语
     def _cut(self,text,maxLen):
         length = len(text)
@@ -147,6 +158,11 @@ class ModelTrain:
     #从所有的切分组合中找到概率最大的切分
     def getMaxProGroup(self,cut_groups):
         MaxProbility = Decimal(0)
+=======
+    #从所有的切分组合中找到概率最大的切分
+    def getMaxProGroup(self,cut_groups):
+        MaxProbility = 0
+>>>>>>> 38a2747b67c0e6f2faa97eebec1cc46d7e937dc8
         Max = []
         for cut_group in cut_groups:
             Probility = self.getProbility(cut_group)
@@ -164,26 +180,51 @@ class ModelTrain:
         length = len(cut_group)
         for index in range(length):
             if index and cut_group[index] in self.words:
+<<<<<<< HEAD
                     probility *= Decimal(self.words[cut_group[index]])/self.words_length
             elif cut_group[index] in self.words:
                 law_count = self.countLawtimes(cut_group[index])
                 if cut_group[index-1] in self.words_LAW[cut_group[index]]:
                     probility *= Decimal(self.words_LAW[cut_group[index]][cut_group[index-1]])/law_count
+=======
+                    probility *= self.words[cut_group[index]]+1/self.words_length
+            elif cut_group[index] in self.words:
+                law_count = 0
+                for key in self.words_LAW[cut_group[index]].keys():
+                    law_count += self.words_LAW[cut_group[index]][key]+1
+                if cut_group[index-1] in self.words_LAW[cut_group[index]]:
+                    probility *= self.words_LAW[cut_group[index]][cut_group[index-1]]+1/law_count
+>>>>>>> 38a2747b67c0e6f2faa97eebec1cc46d7e937dc8
                 else:
                     probility *= Decimal(1)/self.words_length
             else:
                 probility *= Decimal(1)/self.words_length
         return probility
 
+<<<<<<< HEAD
 
 
+=======
+
+    #将分词后的结果输出到文件
+    def writeResult(self,outputFile,contents_after):
+        with open(outputFile,'w',encoding='utf-8') as outfile:
+            outfile.writelines(contents_after)
+
+>>>>>>> 38a2747b67c0e6f2faa97eebec1cc46d7e937dc8
     #从文件内容中读取待切分的内容,内容分为若干行
     #每行内容又按标点切分成多段，最后按段切分以减少切分句子的长度，提高切分速度
     def getCutResult(self,contents_before):
         self.cut_groups = []
         contents_after =[]
+<<<<<<< HEAD
         count = 0
         begin = time.time()
+=======
+        length = len(contents_before)
+        contents_before = contents_before[0:10]
+        count = 0
+>>>>>>> 38a2747b67c0e6f2faa97eebec1cc46d7e937dc8
         for line in contents_before:
             count+=1
             print(count)
@@ -195,6 +236,7 @@ class ModelTrain:
                     self.cut(word,0,6)
                     temp = self.getMaxProGroup(self.cut_groups)
                     sentence += temp
+<<<<<<< HEAD
             content = " ".join(sentence)+'\n'
             contents_after.append(content)
         end = time.time()
@@ -222,3 +264,16 @@ file = open('train_final.txt','r',encoding='utf-8')
 line = file.readlines()
 contents_after = model._getCutResult(line)
 writeResult('2017111457.txt',contents_after)
+=======
+            content = " ".join(sentence)+"\n"
+            contents_after.append(content)
+        return "".join(contents_after)
+
+model = ModelTrain()
+# text = "１２月３１日，中共中央总书记、国家主席江泽民发表１９９８年新年讲话《迈向充满希望的新世纪》。（新华社记者兰红光摄）"
+file = open('train_final.txt','r',encoding='utf-8')
+line = file.readlines()
+contents_after = model.getCutResult(line)
+# print(contents_after)
+model.writeResult('2017111457.txt',contents_after)
+>>>>>>> 38a2747b67c0e6f2faa97eebec1cc46d7e937dc8
